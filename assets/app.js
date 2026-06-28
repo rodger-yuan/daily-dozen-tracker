@@ -303,7 +303,7 @@ function render(rows) {
 function renderEmpty() {
   els.headlineStats.innerHTML = "";
   els.standingsBody.innerHTML =
-    `<tr><td colspan="7" class="empty-state">No results logged yet — be the first! Paste your result on the ✍️ Submit tab.</td></tr>`;
+    `<tr><td colspan="8" class="empty-state">No results logged yet — be the first! Paste your result on the ✍️ Submit tab.</td></tr>`;
   els.gamePicker.innerHTML = "";
   els.dailyBody.innerHTML = `<tr><td colspan="6" class="empty-state">Nothing here yet.</td></tr>`;
   Object.values(charts).forEach((c) => c && c.destroy());
@@ -319,11 +319,12 @@ function buildPlayerStats(rows, players, games, m) {
   return players
     .map((p) => {
       const g = rows.filter((r) => r.player === p).sort((a, b) => a.game - b.game);
+      const wins = games.filter((gm) => m.winnersByGame[gm].has(p)).length;
       const totalHaha = games.reduce((s, gm) => s + ((m.hahaByGame[gm] || {})[p] || 0), 0);
       const sweeps = games.filter((gm) => m.sweepByGame[gm] === p).length;
       const perfects = g.filter(isPerfect).length;
       const last5 = g.slice(-5).map((x) => ({ score: x.score, won: m.winnersByGame[x.game].has(p) }));
-      return { player: p, games: g.length, totalHaha, sweeps, perfects, last5 };
+      return { player: p, games: g.length, wins, totalHaha, sweeps, perfects, last5 };
     })
     .sort((a, b) => b.totalHaha - a.totalHaha || b.sweeps - a.sweeps || b.perfects - a.perfects || b.games - a.games);
 }
@@ -348,6 +349,7 @@ function renderStandings(stats) {
       return `<tr>
         <td class="${i === 0 ? "rank-1" : ""}">${i + 1}</td>
         <td class="player-cell ${i === 0 ? "rank-1" : ""}">${i === 0 ? "👑 " : ""}${esc(s.player)}</td>
+        <td>${s.wins}</td>
         <td>${s.totalHaha}</td>
         <td>${s.sweeps}</td>
         <td>${s.perfects}</td>
