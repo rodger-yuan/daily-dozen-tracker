@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Daily Dozen — Friends League</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="site-header">
+      <div>
+        <h1 id="league-name">Daily Dozen — Friends League</h1>
+        <p id="tagline" class="tagline">Tracking our daily trivia glory (and shame).</p>
+      </div>
+      <div class="header-meta">
+        <span id="status-pill" class="pill">Loading…</span>
+        <span id="last-updated" class="muted small"></span>
+      </div>
+    </header>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab is-active" data-tab="submit">✍️ Submit</button>
+      <button class="tab" data-tab="standings">🏆 Standings</button>
+      <button class="tab" data-tab="daily">📅 By Game</button>
+      <button class="tab" data-tab="trends">📈 Trends</button>
+    </nav>
+
+    <main>
+      <!-- SUBMIT -->
+      <section id="tab-submit" class="tab-panel is-active">
+        <div class="card">
+          <h2>Paste your result</h2>
+          <p class="muted small">
+            Finished a game? Hit “Share” on
+            <a href="https://dailydozentrivia.com/" target="_blank" rel="noopener">The Dozen</a>
+            and paste the whole thing below — we’ll read your score, grid, and time automatically.
+          </p>
+
+          <label class="field-label" for="player-select">Who are you?</label>
+          <div class="who-row">
+            <select id="player-select" class="select"></select>
+            <input id="player-other" class="input" type="text" placeholder="…or type your name" />
+          </div>
+
+          <label class="field-label" for="paste-box">Your shared result</label>
+          <textarea id="paste-box" class="textarea" rows="11" placeholder="The Dozen: Daily Trivia&#10;Game 1071&#10;&#10;Score: 50&#10;🟩🟥🟩&#10;🟥🟩🟪&#10;🟥🟥🟩&#10;5 Correct, Time 01:11"></textarea>
+
+          <div id="parse-preview" class="preview hidden"></div>
+
+          <button id="submit-btn" class="btn" disabled>Save result</button>
+          <p id="submit-msg" class="submit-msg"></p>
+        </div>
+      </section>
+
+      <!-- STANDINGS -->
+      <section id="tab-standings" class="tab-panel">
+        <div class="stat-row" id="headline-stats"></div>
+        <div class="card">
+          <h2>All-Time Standings</h2>
+          <div class="table-scroll">
+            <table id="standings-table">
+              <thead>
+                <tr>
+                  <th>#</th><th>Player</th><th>Wins</th><th>Games</th>
+                  <th>Avg Score</th><th>Avg Correct</th><th>Best</th><th>Form</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <p class="muted small">“Form” = last 5 games (most recent on the right). 🥇 = won that game.</p>
+        </div>
+      </section>
+
+      <!-- BY GAME -->
+      <section id="tab-daily" class="tab-panel">
+        <div class="card">
+          <div class="daily-head">
+            <h2>Results by Game</h2>
+            <select id="game-picker" class="select"></select>
+          </div>
+          <div class="table-scroll">
+            <table id="daily-table">
+              <thead><tr><th>#</th><th>Player</th><th>Score</th><th>Correct</th><th>Time</th><th>Grid</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TRENDS -->
+      <section id="tab-trends" class="tab-panel">
+        <div class="card">
+          <h2>Score by Game</h2>
+          <div class="chart-box"><canvas id="line-chart"></canvas></div>
+        </div>
+        <div class="card">
+          <h2>Total Wins</h2>
+          <div class="chart-box"><canvas id="wins-chart"></canvas></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p class="muted small">
+        Scores from <a href="https://dailydozentrivia.com/" target="_blank" rel="noopener">The Daily Dozen</a>.
+        Static site, hosted free on GitHub Pages.
+      </p>
+    </footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="config.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>
