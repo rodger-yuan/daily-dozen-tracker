@@ -17,11 +17,11 @@
 
 window.DDT_CONFIG = {
   // Where pasted results are SAVED (Apps Script web-app /exec URL).
-  submitEndpoint: "",
+  submitEndpoint: "https://script.google.com/macros/s/AKfycbwtgdAYdwcWJqsCdJTbCq8BjBTZzUHjPYMVjL0-9pxz3s0zw4zqttyghDq96FmZLUlA8Q/exec",
 
-  // Where saved results are READ from (published Google Sheet CSV).
+  // Where saved results are READ from (published Google Sheet "results" tab as CSV).
   // Empty = use the bundled data/results.csv sample file.
-  sheetCsvUrl: "",
+  sheetCsvUrl: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQsKmwwMBIuuGqxYZUr_hX-h1q0pXsS8OALfZOVVy11zSJDODWDvCNi3rmuMGuVqmcQXJNQoajdDtcE/pub?gid=1057514486&single=true&output=csv",
 
   // Header text.
   leagueName: "Daily Dozen — Friends League",

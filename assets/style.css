@@ -138,6 +138,7 @@ td.player-cell { font-weight: 600; }
 .grid-cell { min-width: 60px; }
 
 .hidden { display: none; }
+.empty-state { text-align: center; padding: 28px 12px; color: var(--muted); white-space: normal; }
 
 /* Charts */
 .chart-box { position: relative; height: 320px; }

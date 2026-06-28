@@ -189,9 +189,9 @@ function loadData() {
       try {
         const remote = normalize(res.data);
         const rows = mergeLocal(remote);
-        if (!rows.length) throw new Error("No valid results found yet.");
         setStatus(isLive ? "live" : "seed");
-        render(rows);
+        if (!rows.length) renderEmpty();
+        else render(rows);
       } catch (err) { setStatus("error", err.message); }
     },
     error: (err) => {
@@ -286,6 +286,16 @@ function render(rows) {
   renderStandings(stats);
   renderByGame(byGame, winnersByGame, games);
   renderCharts(rows, players, games, stats);
+}
+
+function renderEmpty() {
+  els.headlineStats.innerHTML = "";
+  els.standingsBody.innerHTML =
+    `<tr><td colspan="8" class="empty-state">No results logged yet — be the first! Paste your result on the ✍️ Submit tab.</td></tr>`;
+  els.gamePicker.innerHTML = "";
+  els.dailyBody.innerHTML = `<tr><td colspan="6" class="empty-state">Nothing here yet.</td></tr>`;
+  Object.values(charts).forEach((c) => c && c.destroy());
+  charts = {};
 }
 
 const bestOf = (a, b) => (HIGHER_BETTER ? Math.max(a, b) : Math.min(a, b));
