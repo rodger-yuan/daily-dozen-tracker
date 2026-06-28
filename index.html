@@ -43,7 +43,6 @@
           <label class="field-label" for="player-select">Who are you?</label>
           <div class="who-row">
             <select id="player-select" class="select"></select>
-            <input id="player-other" class="input" type="text" placeholder="…or type your name" />
           </div>
 
           <label class="field-label" for="paste-box">Your shared result</label>
@@ -65,14 +64,18 @@
             <table id="standings-table">
               <thead>
                 <tr>
-                  <th>#</th><th>Player</th><th>Wins</th><th>Games</th>
-                  <th>Avg Score</th><th>Avg Correct</th><th>Best</th><th>Form</th>
+                  <th>#</th><th>Player</th><th>😂 Hahas</th><th>🧹 Sweeps</th>
+                  <th>💯 Perfect</th><th>Games</th><th>Form</th>
                 </tr>
               </thead>
               <tbody></tbody>
             </table>
           </div>
-          <p class="muted small">“Form” = last 5 games (most recent on the right). 🥇 = won that game.</p>
+          <p class="muted small">
+            😂 <b>Haha</b> = total players you’ve outscored across all games (game win = 3, 2nd = 2…).
+            🧹 <b>Sweep</b> = games you got 3+ more correct than everyone else (needs all 4 submitted).
+            💯 <b>Perfect</b> = all 9 correct. “Form” = last 5 games (recent on the right), 🥇 = top score.
+          </p>
         </div>
       </section>
 
@@ -95,12 +98,8 @@
       <!-- TRENDS -->
       <section id="tab-trends" class="tab-panel">
         <div class="card">
-          <h2>Score by Game</h2>
-          <div class="chart-box"><canvas id="line-chart"></canvas></div>
-        </div>
-        <div class="card">
-          <h2>Total Wins</h2>
-          <div class="chart-box"><canvas id="wins-chart"></canvas></div>
+          <h2>Total Hahas Over Time</h2>
+          <div class="chart-box"><canvas id="haha-chart"></canvas></div>
         </div>
       </section>
     </main>

@@ -21,7 +21,6 @@ const els = {
   gamePicker: q("#game-picker"),
   // submit
   playerSelect: q("#player-select"),
-  playerOther: q("#player-other"),
   pasteBox: q("#paste-box"),
   preview: q("#parse-preview"),
   submitBtn: q("#submit-btn"),
@@ -70,34 +69,22 @@ function timeToSec(s) { if (!s) return null; const [m, sec] = s.split(":").map(N
 
 // ── Submit flow ─────────────────────────────────────────────────────
 function setupSubmit() {
-  // Populate roster dropdown.
+  // Populate roster dropdown (fixed roster — no free-text entry).
   const roster = CFG.players || [];
   els.playerSelect.innerHTML =
     `<option value="">— pick your name —</option>` +
-    roster.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join("") +
-    `<option value="__other">Someone else…</option>`;
+    roster.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join("");
 
   const savedName = localStorage.getItem(LS_NAME);
-  if (savedName) {
-    if (roster.includes(savedName)) els.playerSelect.value = savedName;
-    else { els.playerSelect.value = "__other"; els.playerOther.value = savedName; }
-  }
-  toggleOther();
+  if (savedName && roster.includes(savedName)) els.playerSelect.value = savedName;
 
-  els.playerSelect.addEventListener("change", () => { toggleOther(); refreshSubmitState(); });
-  els.playerOther.addEventListener("input", refreshSubmitState);
+  els.playerSelect.addEventListener("change", refreshSubmitState);
   els.pasteBox.addEventListener("input", () => { lastParsed = parseDozenResult(els.pasteBox.value); renderPreview(); refreshSubmitState(); });
   els.submitBtn.addEventListener("click", submitResult);
 }
 
-function toggleOther() {
-  els.playerOther.classList.toggle("hidden", els.playerSelect.value !== "__other");
-}
-
 function currentPlayer() {
-  const sel = els.playerSelect.value;
-  if (sel === "__other" || sel === "") return els.playerOther.value.trim();
-  return sel;
+  return els.playerSelect.value;
 }
 
 function refreshSubmitState() {
@@ -271,54 +258,75 @@ function render(rows) {
   rows.sort((a, b) => a.game - b.game);
   const games = [...new Set(rows.map((r) => r.game))].sort((a, b) => a - b);
   const players = [...new Set(rows.map((r) => r.player))].sort();
+  const roster = CFG.players || [];
 
   const byGame = {};
   games.forEach((g) => (byGame[g] = rows.filter((r) => r.game === g)));
-  const winnersByGame = {};
+
+  // Per-game derived metrics.
+  const winnersByGame = {};      // game -> Set(top-score players)
+  const hahaByGame = {};         // game -> { player: hahas earned that game }
+  const sweepByGame = {};        // game -> player who swept (or null)
   games.forEach((g) => {
     const day = byGame[g];
-    const best = day.reduce((acc, r) => bestOf(acc, r.score), day[0].score);
-    winnersByGame[g] = new Set(day.filter((r) => r.score === best).map((r) => r.player));
+    const top = Math.max(...day.map((r) => r.score));
+    winnersByGame[g] = new Set(day.filter((r) => r.score === top).map((r) => r.player));
+
+    // Haha: # of players you strictly outscored this game.
+    const hh = {};
+    day.forEach((r) => {
+      hh[r.player] = day.filter((o) => o.player !== r.player && o.score < r.score).length;
+    });
+    hahaByGame[g] = hh;
+
+    // Sweep: all roster submitted AND best-correct beats 2nd-best-correct by >= 3.
+    const present = new Set(day.map((r) => r.player));
+    const allIn = roster.length > 0 && roster.every((p) => present.has(p));
+    let sweeper = null;
+    if (allIn) {
+      const byCorrect = [...day].sort((a, b) => (b.correct || 0) - (a.correct || 0));
+      if (byCorrect.length >= 2 && (byCorrect[0].correct - byCorrect[1].correct) >= 3) {
+        sweeper = byCorrect[0].player;
+      }
+    }
+    sweepByGame[g] = sweeper;
   });
 
-  const stats = buildPlayerStats(rows, players, games, winnersByGame);
+  const metrics = { winnersByGame, hahaByGame, sweepByGame };
+  const stats = buildPlayerStats(rows, players, games, metrics);
   renderHeadline(stats, games, rows);
   renderStandings(stats);
   renderByGame(byGame, winnersByGame, games);
-  renderCharts(rows, players, games, stats);
+  renderCharts(players, games, hahaByGame);
 }
 
 function renderEmpty() {
   els.headlineStats.innerHTML = "";
   els.standingsBody.innerHTML =
-    `<tr><td colspan="8" class="empty-state">No results logged yet — be the first! Paste your result on the ✍️ Submit tab.</td></tr>`;
+    `<tr><td colspan="7" class="empty-state">No results logged yet — be the first! Paste your result on the ✍️ Submit tab.</td></tr>`;
   els.gamePicker.innerHTML = "";
   els.dailyBody.innerHTML = `<tr><td colspan="6" class="empty-state">Nothing here yet.</td></tr>`;
   Object.values(charts).forEach((c) => c && c.destroy());
   charts = {};
 }
 
-const bestOf = (a, b) => (HIGHER_BETTER ? Math.max(a, b) : Math.min(a, b));
+function isPerfect(r) {
+  if (Number.isFinite(r.correct)) return r.correct === 9;
+  return r.grid.length === 9 && !r.grid.includes("R");
+}
 
-function buildPlayerStats(rows, players, games, winnersByGame) {
+function buildPlayerStats(rows, players, games, m) {
   return players
     .map((p) => {
       const g = rows.filter((r) => r.player === p).sort((a, b) => a.game - b.game);
-      const scores = g.map((x) => x.score);
-      const corrects = g.map((x) => x.correct).filter(Number.isFinite);
-      const wins = games.filter((gm) => winnersByGame[gm].has(p)).length;
-      const last5 = g.slice(-5).map((x) => ({ score: x.score, won: winnersByGame[x.game].has(p) }));
-      return {
-        player: p, games: g.length, wins,
-        total: scores.reduce((a, b) => a + b, 0),
-        avg: avg(scores), avgCorrect: avg(corrects),
-        best: scores.length ? scores.reduce(bestOf) : 0,
-        last5, history: g,
-      };
+      const totalHaha = games.reduce((s, gm) => s + ((m.hahaByGame[gm] || {})[p] || 0), 0);
+      const sweeps = games.filter((gm) => m.sweepByGame[gm] === p).length;
+      const perfects = g.filter(isPerfect).length;
+      const last5 = g.slice(-5).map((x) => ({ score: x.score, won: m.winnersByGame[x.game].has(p) }));
+      return { player: p, games: g.length, totalHaha, sweeps, perfects, last5 };
     })
-    .sort((a, b) => b.wins - a.wins || b.avg - a.avg || b.total - a.total);
+    .sort((a, b) => b.totalHaha - a.totalHaha || b.sweeps - a.sweeps || b.perfects - a.perfects || b.games - a.games);
 }
-const avg = (arr) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0);
 
 function renderHeadline(stats, games, rows) {
   const leader = stats[0];
@@ -326,7 +334,7 @@ function renderHeadline(stats, games, rows) {
     { label: "Players", value: stats.length },
     { label: "Games tracked", value: games.length },
     { label: "Results logged", value: rows.length },
-    { label: "Current leader", value: leader ? `${esc(leader.player)} <small>· ${leader.wins}W</small>` : "—" },
+    { label: "Top 😂", value: leader && leader.totalHaha ? `${esc(leader.player)} <small>· ${leader.totalHaha}</small>` : "—" },
   ];
   els.headlineStats.innerHTML = cards
     .map((c) => `<div class="stat"><div class="label">${c.label}</div><div class="value">${c.value}</div></div>`)
@@ -340,11 +348,10 @@ function renderStandings(stats) {
       return `<tr>
         <td class="${i === 0 ? "rank-1" : ""}">${i + 1}</td>
         <td class="player-cell ${i === 0 ? "rank-1" : ""}">${i === 0 ? "👑 " : ""}${esc(s.player)}</td>
-        <td>${s.wins}</td>
+        <td>${s.totalHaha}</td>
+        <td>${s.sweeps}</td>
+        <td>${s.perfects}</td>
         <td>${s.games}</td>
-        <td>${fmt(s.avg, 1)}</td>
-        <td>${fmt(s.avgCorrect, 1)}</td>
-        <td>${fmt(s.best)}</td>
         <td class="form-dots">${form || "—"}</td>
       </tr>`;
     })
@@ -384,29 +391,35 @@ function renderGrid(grid) {
   return `<span class="grid3">${cells}</span>`;
 }
 
-function renderCharts(rows, players, games, stats) {
-  const palette = ["#f5c518", "#5b8def", "#4ade80", "#f87171", "#c084fc", "#fb923c", "#22d3ee", "#e879f9", "#a3e635", "#facc15"];
+let chartData = null;
+
+function renderCharts(players, games, hahaByGame) {
+  chartData = { players, games, hahaByGame };
   Object.values(charts).forEach((c) => c && c.destroy());
+  charts = {};
+  // Build now only if Trends is the visible tab; otherwise it's built on reveal.
+  if (q("#tab-trends").classList.contains("is-active")) buildHahaChart();
+}
 
-  const lineDatasets = players.map((p, i) => {
+// (Re)build the cumulative-Hahas chart. Created only while its panel is visible
+// — a Chart made in a display:none container renders at 0×0 with no line.
+function buildHahaChart() {
+  if (!chartData) return;
+  const { players, games, hahaByGame } = chartData;
+  const palette = ["#f5c518", "#5b8def", "#4ade80", "#f87171", "#c084fc", "#fb923c", "#22d3ee", "#e879f9", "#a3e635", "#facc15"];
+  if (charts.haha) charts.haha.destroy();
+
+  const datasets = players.map((p, i) => {
     const color = palette[i % palette.length];
-    return {
-      label: p,
-      data: games.map((g) => { const hit = rows.find((r) => r.game === g && r.player === p); return hit ? hit.score : null; }),
-      borderColor: color, backgroundColor: color, tension: 0.3, spanGaps: true, pointRadius: 3,
-    };
+    let cum = 0;
+    const data = games.map((g) => { cum += (hahaByGame[g] || {})[p] || 0; return cum; });
+    return { label: p, data, borderColor: color, backgroundColor: color, tension: 0.25, pointRadius: 2 };
   });
 
-  charts.line = new Chart(q("#line-chart"), {
+  charts.haha = new Chart(q("#haha-chart"), {
     type: "line",
-    data: { labels: games.map((g) => "#" + g), datasets: lineDatasets },
-    options: chartOpts({ beginAtZero: true, grid: { color: "#262b38" } }),
-  });
-
-  charts.wins = new Chart(q("#wins-chart"), {
-    type: "bar",
-    data: { labels: stats.map((s) => s.player), datasets: [{ label: "Wins", data: stats.map((s) => s.wins), backgroundColor: stats.map((_, i) => palette[i % palette.length]), borderRadius: 6 }] },
-    options: chartOpts({ beginAtZero: true, ticks: { precision: 0 }, grid: { color: "#262b38" } }, false),
+    data: { labels: games.map((g) => "#" + g), datasets },
+    options: chartOpts({ beginAtZero: true, ticks: { precision: 0 }, grid: { color: "#262b38" } }),
   });
 }
 
@@ -427,6 +440,8 @@ function setupTabs() {
       tab.classList.add("is-active");
       document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("is-active"));
       q("#tab-" + tab.dataset.tab).classList.add("is-active");
+      // Build the chart only once its panel is actually visible (avoids 0×0 render).
+      if (tab.dataset.tab === "trends") buildHahaChart();
     });
   });
 }
