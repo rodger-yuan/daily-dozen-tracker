@@ -269,13 +269,15 @@ function render(rows) {
   const sweepByGame = {};        // game -> player who swept (or null)
   games.forEach((g) => {
     const day = byGame[g];
-    const top = Math.max(...day.map((r) => r.score));
-    winnersByGame[g] = new Set(day.filter((r) => r.score === top).map((r) => r.player));
+    // Ranking is a total order: higher score wins; ties broken by faster time.
+    winnersByGame[g] = new Set(
+      day.filter((p) => !day.some((o) => o.player !== p.player && beats(o, p))).map((p) => p.player)
+    );
 
-    // Haha: # of players you strictly outscored this game.
+    // Haha: # of players you finished ahead of this game (score, then time).
     const hh = {};
     day.forEach((r) => {
-      hh[r.player] = day.filter((o) => o.player !== r.player && o.score < r.score).length;
+      hh[r.player] = day.filter((o) => o.player !== r.player && beats(r, o)).length;
     });
     hahaByGame[g] = hh;
 
@@ -314,6 +316,18 @@ function isPerfect(r) {
   if (Number.isFinite(r.correct)) return r.correct === 9;
   return r.grid.length === 9 && !r.grid.includes("R");
 }
+
+// Does result `a` finish ahead of `b`? Higher score wins; ties broken by the
+// faster time. A missing time always ranks behind a recorded one.
+function beats(a, b) {
+  if (a.score !== b.score) return a.score > b.score;
+  const ta = a.timeSeconds, tb = b.timeSeconds;
+  if (ta == null) return false;
+  if (tb == null) return true;
+  return ta < tb;
+}
+// Sort comparator (best first) using the same ranking.
+const rankSort = (a, b) => (beats(a, b) ? -1 : beats(b, a) ? 1 : 0);
 
 function buildPlayerStats(rows, players, games, m) {
   return players
@@ -367,7 +381,7 @@ function renderByGame(byGame, winnersByGame, games) {
     .join("");
 
   const draw = (g) => {
-    const sorted = byGame[g].slice().sort((a, b) => (HIGHER_BETTER ? b.score - a.score : a.score - b.score));
+    const sorted = byGame[g].slice().sort(rankSort);
     els.dailyBody.innerHTML = sorted
       .map((r, i) => {
         const won = winnersByGame[g].has(r.player);
