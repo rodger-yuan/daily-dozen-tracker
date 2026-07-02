@@ -294,13 +294,27 @@ function render(rows) {
     sweepByGame[g] = sweeper;
   });
 
-  const metrics = { winnersByGame, hahaByGame, sweepByGame };
+  // Standings leadership over time: re-rank after each game (Wins, then Haha)
+  // and record who sits at #1. Drives the 👑 leadership columns and tile.
+  const leaderByGame = {};
+  const cw = {}, ch = {};
+  players.forEach((p) => { cw[p] = 0; ch[p] = 0; });
+  games.forEach((g) => {
+    players.forEach((p) => {
+      if (winnersByGame[g].has(p)) cw[p]++;
+      ch[p] += (hahaByGame[g] || {})[p] || 0;
+    });
+    leaderByGame[g] = players.slice().sort(
+      (a, b) => cw[b] - cw[a] || ch[b] - ch[a] || a.localeCompare(b)
+    )[0];
+  });
+
+  const metrics = { winnersByGame, hahaByGame, sweepByGame, leaderByGame };
   const stats = buildPlayerStats(rows, players, games, metrics);
 
-  // Reigning champ = winner of the most recent game.
+  // Current #1 in the standings = the top row (same Wins→Haha ranking).
   const lastGame = games[games.length - 1];
-  const champRow = byGame[lastGame].slice().sort(rankSort)[0];
-  const champ = champRow && stats.find((s) => s.player === champRow.player);
+  const champ = stats[0];
 
   renderChampion(champ, lastGame);
   renderHeadline(stats, games, rows);
@@ -316,12 +330,12 @@ function renderChampion(champ, lastGame) {
   el.innerHTML = `
     <div class="champ-crown">👑</div>
     <div class="champ-main">
-      <div class="champ-label">Currently in 1st · after Game ${lastGame}</div>
+      <div class="champ-label">Leading the standings · after Game ${lastGame}</div>
       <div class="champ-name">${esc(champ.player)}</div>
     </div>
     <div class="champ-stats">
-      <div class="champ-stat"><div class="cs-val">🔥 ${champ.streak}</div><div class="cs-lbl">win streak</div></div>
-      <div class="champ-stat"><div class="cs-val">${champ.wins}</div><div class="cs-lbl">total 1st</div></div>
+      <div class="champ-stat"><div class="cs-val">${champ.leadStreak}</div><div class="cs-lbl">games in a row 1st</div></div>
+      <div class="champ-stat"><div class="cs-val">${champ.leadTotal}</div><div class="cs-lbl">total games 1st</div></div>
     </div>`;
 }
 
@@ -329,7 +343,7 @@ function renderEmpty() {
   q("#champion-tile").classList.add("hidden");
   els.headlineStats.innerHTML = "";
   els.standingsBody.innerHTML =
-    `<tr><td colspan="9" class="empty-state">No results logged yet — be the first! Paste your result on the ✍️ Submit tab.</td></tr>`;
+    `<tr><td colspan="11" class="empty-state">No results logged yet — be the first! Paste your result on the ✍️ Submit tab.</td></tr>`;
   els.gamePicker.innerHTML = "";
   els.dailyBody.innerHTML = `<tr><td colspan="6" class="empty-state">Nothing here yet.</td></tr>`;
   Object.values(charts).forEach((c) => c && c.destroy());
@@ -364,6 +378,17 @@ function currentStreak(player, games, winnersByGame) {
   return s;
 }
 
+// Current consecutive games ranked #1 in the STANDINGS, counting back from the
+// latest game. Nonzero only for whoever currently leads the standings.
+function leaderStreak(player, games, leaderByGame) {
+  let s = 0;
+  for (let i = games.length - 1; i >= 0; i--) {
+    if (leaderByGame[games[i]] === player) s++;
+    else break;
+  }
+  return s;
+}
+
 function buildPlayerStats(rows, players, games, m) {
   return players
     .map((p) => {
@@ -373,10 +398,14 @@ function buildPlayerStats(rows, players, games, m) {
       const totalHaha = games.reduce((s, gm) => s + ((m.hahaByGame[gm] || {})[p] || 0), 0);
       const sweeps = games.filter((gm) => m.sweepByGame[gm] === p).length;
       const perfects = g.filter(isPerfect).length;
+      // Standings-leadership: games ranked #1 in the standings (after each game).
+      const leadTotal = games.filter((gm) => m.leaderByGame[gm] === p).length;
+      const leadStreak = leaderStreak(p, games, m.leaderByGame);
       const last5 = g.slice(-5).map((x) => ({ score: x.score, won: m.winnersByGame[x.game].has(p) }));
-      return { player: p, games: g.length, wins, streak, totalHaha, sweeps, perfects, last5 };
+      return { player: p, games: g.length, wins, streak, totalHaha, sweeps, perfects, leadTotal, leadStreak, last5 };
     })
-    .sort((a, b) => b.totalHaha - a.totalHaha || b.sweeps - a.sweeps || b.perfects - a.perfects || b.games - a.games);
+    // First place = most Wins, tiebreak Hahas (then name for determinism).
+    .sort((a, b) => b.wins - a.wins || b.totalHaha - a.totalHaha || a.player.localeCompare(b.player));
 }
 
 function renderHeadline(stats, games, rows) {
@@ -401,6 +430,8 @@ function renderStandings(stats) {
         <td class="player-cell ${i === 0 ? "rank-1" : ""}">${i === 0 ? "👑 " : ""}${esc(s.player)}</td>
         <td>${s.wins}</td>
         <td>${s.streak ? "🔥 " + s.streak : "—"}</td>
+        <td>${s.leadStreak ? "👑 " + s.leadStreak : "—"}</td>
+        <td>${s.leadTotal}</td>
         <td>${s.totalHaha}</td>
         <td>${s.sweeps}</td>
         <td>${s.perfects}</td>
