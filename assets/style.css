@@ -70,6 +70,26 @@ h1 {
 }
 .card h2 { margin: 0 0 14px; font-size: 18px; font-weight: 700; }
 
+/* Champion tile */
+.champion {
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+  background: linear-gradient(135deg, rgba(245,197,24,.16), rgba(91,141,239,.10));
+  border: 1px solid rgba(245,197,24,.45); border-radius: var(--radius);
+  padding: 18px 22px; margin-bottom: 18px; box-shadow: var(--shadow);
+}
+.champ-crown { font-size: 40px; line-height: 1; }
+.champ-main { flex: 1; min-width: 140px; }
+.champ-label { color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.champ-name {
+  font-size: clamp(24px, 4vw, 32px); font-weight: 800; letter-spacing: -0.02em;
+  background: linear-gradient(90deg, var(--accent), #ffe98a);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.champ-stats { display: flex; gap: 26px; }
+.champ-stat { text-align: center; }
+.cs-val { font-size: 24px; font-weight: 800; }
+.cs-lbl { color: var(--muted); font-size: 12px; font-weight: 500; margin-top: 2px; }
+
 /* Headline stats */
 .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
 .stat {

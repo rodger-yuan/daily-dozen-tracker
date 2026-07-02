@@ -296,16 +296,40 @@ function render(rows) {
 
   const metrics = { winnersByGame, hahaByGame, sweepByGame };
   const stats = buildPlayerStats(rows, players, games, metrics);
+
+  // Reigning champ = winner of the most recent game.
+  const lastGame = games[games.length - 1];
+  const champRow = byGame[lastGame].slice().sort(rankSort)[0];
+  const champ = champRow && stats.find((s) => s.player === champRow.player);
+
+  renderChampion(champ, lastGame);
   renderHeadline(stats, games, rows);
   renderStandings(stats);
   renderByGame(byGame, winnersByGame, games);
   renderCharts(players, games, hahaByGame);
 }
 
+function renderChampion(champ, lastGame) {
+  const el = q("#champion-tile");
+  if (!champ) { el.classList.add("hidden"); el.innerHTML = ""; return; }
+  el.classList.remove("hidden");
+  el.innerHTML = `
+    <div class="champ-crown">👑</div>
+    <div class="champ-main">
+      <div class="champ-label">Currently in 1st · after Game ${lastGame}</div>
+      <div class="champ-name">${esc(champ.player)}</div>
+    </div>
+    <div class="champ-stats">
+      <div class="champ-stat"><div class="cs-val">🔥 ${champ.streak}</div><div class="cs-lbl">win streak</div></div>
+      <div class="champ-stat"><div class="cs-val">${champ.wins}</div><div class="cs-lbl">total 1st</div></div>
+    </div>`;
+}
+
 function renderEmpty() {
+  q("#champion-tile").classList.add("hidden");
   els.headlineStats.innerHTML = "";
   els.standingsBody.innerHTML =
-    `<tr><td colspan="8" class="empty-state">No results logged yet — be the first! Paste your result on the ✍️ Submit tab.</td></tr>`;
+    `<tr><td colspan="9" class="empty-state">No results logged yet — be the first! Paste your result on the ✍️ Submit tab.</td></tr>`;
   els.gamePicker.innerHTML = "";
   els.dailyBody.innerHTML = `<tr><td colspan="6" class="empty-state">Nothing here yet.</td></tr>`;
   Object.values(charts).forEach((c) => c && c.destroy());
@@ -329,16 +353,28 @@ function beats(a, b) {
 // Sort comparator (best first) using the same ranking.
 const rankSort = (a, b) => (beats(a, b) ? -1 : beats(b, a) ? 1 : 0);
 
+// Current consecutive 1st-place finishes, counting back from the latest game.
+// Nonzero only for whoever won the most recent game(s).
+function currentStreak(player, games, winnersByGame) {
+  let s = 0;
+  for (let i = games.length - 1; i >= 0; i--) {
+    if (winnersByGame[games[i]].has(player)) s++;
+    else break;
+  }
+  return s;
+}
+
 function buildPlayerStats(rows, players, games, m) {
   return players
     .map((p) => {
       const g = rows.filter((r) => r.player === p).sort((a, b) => a.game - b.game);
       const wins = games.filter((gm) => m.winnersByGame[gm].has(p)).length;
+      const streak = currentStreak(p, games, m.winnersByGame);
       const totalHaha = games.reduce((s, gm) => s + ((m.hahaByGame[gm] || {})[p] || 0), 0);
       const sweeps = games.filter((gm) => m.sweepByGame[gm] === p).length;
       const perfects = g.filter(isPerfect).length;
       const last5 = g.slice(-5).map((x) => ({ score: x.score, won: m.winnersByGame[x.game].has(p) }));
-      return { player: p, games: g.length, wins, totalHaha, sweeps, perfects, last5 };
+      return { player: p, games: g.length, wins, streak, totalHaha, sweeps, perfects, last5 };
     })
     .sort((a, b) => b.totalHaha - a.totalHaha || b.sweeps - a.sweeps || b.perfects - a.perfects || b.games - a.games);
 }
@@ -364,6 +400,7 @@ function renderStandings(stats) {
         <td class="${i === 0 ? "rank-1" : ""}">${i + 1}</td>
         <td class="player-cell ${i === 0 ? "rank-1" : ""}">${i === 0 ? "👑 " : ""}${esc(s.player)}</td>
         <td>${s.wins}</td>
+        <td>${s.streak ? "🔥 " + s.streak : "—"}</td>
         <td>${s.totalHaha}</td>
         <td>${s.sweeps}</td>
         <td>${s.perfects}</td>
