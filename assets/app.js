@@ -330,12 +330,12 @@ function renderChampion(champ, lastGame) {
   el.innerHTML = `
     <div class="champ-crown">👑</div>
     <div class="champ-main">
-      <div class="champ-label">Leading the standings · after Game ${lastGame}</div>
+      <div class="champ-label">1st in the standings · after Game ${lastGame}</div>
       <div class="champ-name">${esc(champ.player)}</div>
     </div>
     <div class="champ-stats">
-      <div class="champ-stat"><div class="cs-val">${champ.leadStreak}</div><div class="cs-lbl">games in a row 1st</div></div>
-      <div class="champ-stat"><div class="cs-val">${champ.leadTotal}</div><div class="cs-lbl">total games 1st</div></div>
+      <div class="champ-stat"><div class="cs-val">${champ.leadStreak}</div><div class="cs-lbl">1st place streak</div></div>
+      <div class="champ-stat"><div class="cs-val">${champ.leadTotal}</div><div class="cs-lbl">1st place total</div></div>
     </div>`;
 }
 
