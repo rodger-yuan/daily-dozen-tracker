@@ -409,12 +409,22 @@ function buildPlayerStats(rows, players, games, m) {
 }
 
 function renderHeadline(stats, games, rows) {
-  const leader = stats[0];
+  // Who leads a stat, regardless of standings position (ties share the tile).
+  const topBy = (key) => {
+    const max = Math.max(0, ...stats.map((s) => s[key] || 0));
+    if (!max) return null;
+    return { max, names: stats.filter((s) => (s[key] || 0) === max).map((s) => s.player) };
+  };
+  const topTile = (top, none) =>
+    top ? `${top.names.map(esc).join(", ")} <small>· ${top.max}</small>` : none;
+  const NONE_DUMB = `<span class="none-dumb">None, you are all equally dumb</span>`;
   const cards = [
     { label: "Players", value: stats.length },
     { label: "Games tracked", value: games.length },
     { label: "Results logged", value: rows.length },
-    { label: "Top 😂", value: leader && leader.totalHaha ? `${esc(leader.player)} <small>· ${leader.totalHaha}</small>` : "—" },
+    { label: "Top 😂", value: topTile(topBy("totalHaha"), "—") },
+    { label: "Most Sweeps", value: topTile(topBy("sweeps"), NONE_DUMB) },
+    { label: "Most Perfects", value: topTile(topBy("perfects"), NONE_DUMB) },
   ];
   els.headlineStats.innerHTML = cards
     .map((c) => `<div class="stat"><div class="label">${c.label}</div><div class="value">${c.value}</div></div>`)
