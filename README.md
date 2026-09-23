@@ -108,27 +108,35 @@ Script editor, Save, then **Deploy → Manage deployments → ✏️ Edit → Ve
 New version → Deploy**. (Editing the existing deployment keeps the same `/exec` URL.)
 
 ### Friends' results: one automation per friend
-Shortcuts app → **Automation** → **+** → **Message**:
-1. **Sender:** pick the friend (e.g. Harry). **Message Contains:** `Score:`.
-2. Choose **Run Immediately** (turn off *Notify When Run* if you like). **Next**.
-3. **New Blank Automation** → add **Get Contents of URL**:
-   - URL: your `/exec` URL (same as `submitEndpoint` in `config.js`)
-   - Tap ▸ to expand: **Method:** `POST`, **Request Body:** `JSON`
-   - Add field `player` (Text) = `Harry`
-   - Add field `raw` (Text) = tap the variable button, pick **Shortcut Input** →
-     then tap it and choose **Content**
-4. Done. Repeat for each friend, changing the Sender and `player`.
+Written for current iOS (18+). Shortcuts app → **Automation** tab → **+** → **Message**:
+1. **Sender:** tap **Choose** → pick the friend (e.g. Harry) → **Done**.
+2. **Message Contains:** tap **Choose** → type `Score:` → **Done**.
+3. Select **Run Immediately**; turn off **Notify When Run** if you like. **Next**.
+4. Tap **Create New Shortcut** (older iOS: *New Blank Automation*).
+5. In **Search Actions** at the bottom, add **Get Contents of URL**:
+   - Tap the blue **URL** → paste your `/exec` URL (same as `submitEndpoint` in `config.js`).
+   - Tap the **›** chevron on the action to expand it. **Method:** `POST`,
+     **Request Body:** `JSON`.
+   - **Add new field → Text**: key `player`, value `Harry` (must match the roster exactly).
+   - **Add new field → Text**: key `raw`; tap the value box → **Shortcut Input** in the
+     bar above the keyboard → tap the inserted blue **Shortcut Input** token →
+     choose **Content** (so it's the message text, not the whole message).
+6. Tap **Done**. Repeat for each friend, changing the Sender and `player`.
 
 Non-result messages that happen to contain "Score:" are ignored (`Not a Dozen result`).
 
 ### Your own results: a share-sheet shortcut
 Received-message automations don't fire for messages *you* send, so make a
 regular shortcut:
-1. Shortcuts → **+** → name it **Log Dozen**. In ⓘ turn on **Show in Share Sheet**,
-   input type **Text**.
-2. Add **Get Contents of URL**, same as above, with `player` = your name and
+1. Shortcuts tab → **+** → rename it **Log Dozen**.
+2. Tap **ⓘ** → turn on **Show in Share Sheet** → close the panel. A block appears at
+   the top: *Receive **Images and 18 more** input from Share Sheet*. Tap
+   **Images and 18 more** → select only **Text**. Tap **If there's no input:
+   Continue** → **Get Clipboard**.
+3. Add **Get Contents of URL**, same as above, with `player` = your name and
    `raw` = **Shortcut Input**.
-3. After playing, tap **Share** in The Dozen → **Log Dozen**. (Then paste into
+4. Add **Show Content** (or **Quick Look**) to see `{"ok":true,...}`.
+5. After playing, copy/share your result → run **Log Dozen**. (Then paste into
    the chat as usual.)
 
 ---
