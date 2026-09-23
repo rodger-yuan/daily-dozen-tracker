@@ -97,6 +97,42 @@ works as-is.
 
 ---
 
+## Auto-logging from the group chat (iPhone Shortcuts)
+
+Instead of pasting on the site, your iPhone can log results straight from the
+iMessage group chat. The Apps Script accepts `{ "player": "...", "raw": "<share text>" }`
+and parses it itself.
+
+**One-time:** after updating `apps-script/Code.gs`, paste it into the Apps
+Script editor, Save, then **Deploy → Manage deployments → ✏️ Edit → Version:
+New version → Deploy**. (Editing the existing deployment keeps the same `/exec` URL.)
+
+### Friends' results: one automation per friend
+Shortcuts app → **Automation** → **+** → **Message**:
+1. **Sender:** pick the friend (e.g. Harry). **Message Contains:** `Score:`.
+2. Choose **Run Immediately** (turn off *Notify When Run* if you like). **Next**.
+3. **New Blank Automation** → add **Get Contents of URL**:
+   - URL: your `/exec` URL (same as `submitEndpoint` in `config.js`)
+   - Tap ▸ to expand: **Method:** `POST`, **Request Body:** `JSON`
+   - Add field `player` (Text) = `Harry`
+   - Add field `raw` (Text) = tap the variable button, pick **Shortcut Input** →
+     then tap it and choose **Content**
+4. Done. Repeat for each friend, changing the Sender and `player`.
+
+Non-result messages that happen to contain "Score:" are ignored (`Not a Dozen result`).
+
+### Your own results: a share-sheet shortcut
+Received-message automations don't fire for messages *you* send, so make a
+regular shortcut:
+1. Shortcuts → **+** → name it **Log Dozen**. In ⓘ turn on **Show in Share Sheet**,
+   input type **Text**.
+2. Add **Get Contents of URL**, same as above, with `player` = your name and
+   `raw` = **Shortcut Input**.
+3. After playing, tap **Share** in The Dozen → **Log Dozen**. (Then paste into
+   the chat as usual.)
+
+---
+
 ## Customizing
 
 In [`config.js`](config.js): `leagueName`, `tagline`, the `players` roster, and

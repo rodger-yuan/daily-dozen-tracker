@@ -25,6 +25,15 @@ function doPost(e) {
   lock.waitLock(20000); // avoid two submissions clobbering each other
   try {
     var data = JSON.parse(e.postData.contents);
+
+    // iPhone Shortcuts send the raw share text as { player, raw } and let us
+    // parse it here (same rules as parseDozenResult in assets/app.js).
+    if (data.raw) {
+      var parsed = parseDozenResult_(data.raw);
+      if (!parsed) return json_({ ok: false, error: 'Not a Dozen result' });
+      for (var k in parsed) data[k] = parsed[k];
+    }
+
     var sheet = getSheet_();
 
     var game = String(data.game || '').trim();
@@ -57,6 +66,29 @@ function doPost(e) {
 // Lets you open the /exec URL in a browser to sanity-check it's deployed.
 function doGet() {
   return json_({ ok: true, service: 'daily-dozen-tracker', rows: getSheet_().getLastRow() - 1 });
+}
+
+function parseDozenResult_(text) {
+  var t = String(text).replace(/\r/g, '');
+  var game = numMatch_(t, /Game\s+#?(\d+)/i);
+  var score = numMatch_(t, /Score:?\s*(\d+)/i);
+  var correct = numMatch_(t, /(\d+)\s*Correct/i);
+  var timeMatch = t.match(/Time\s*:?\s*(\d{1,2}:\d{2})/i);
+
+  var grid = '';
+  var cells = t.match(/🟩|🟥|🟪/g) || [];
+  for (var i = 0; i < cells.length; i++) {
+    grid += cells[i] === '🟩' ? 'G' : cells[i] === '🟥' ? 'R' : 'P';
+  }
+  if (correct == null && grid) correct = (grid.match(/[GP]/g) || []).length;
+
+  if (game == null || score == null) return null;
+  return { game: game, score: score, correct: correct, time: timeMatch ? timeMatch[1] : '', grid: grid };
+}
+
+function numMatch_(t, re) {
+  var m = t.match(re);
+  return m ? parseInt(m[1], 10) : null;
 }
 
 function getSheet_() {
