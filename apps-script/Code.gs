@@ -75,10 +75,12 @@ function parseDozenResult_(text) {
   var correct = numMatch_(t, /(\d+)\s*Correct/i);
   var timeMatch = t.match(/Time\s*:?\s*(\d{1,2}:\d{2})/i);
 
+  // Squares written as escapes (green U+1F7E9, red U+1F7E5, purple U+1F7EA)
+  // so the pattern survives copy/paste into the Apps Script editor.
   var grid = '';
-  var cells = t.match(/🟩|🟥|🟪/g) || [];
+  var cells = t.match(/\uD83D[\uDFE9\uDFE5\uDFEA]/g) || [];
   for (var i = 0; i < cells.length; i++) {
-    grid += cells[i] === '🟩' ? 'G' : cells[i] === '🟥' ? 'R' : 'P';
+    grid += cells[i] === '\uD83D\uDFE9' ? 'G' : cells[i] === '\uD83D\uDFE5' ? 'R' : 'P';
   }
   if (correct == null && grid) correct = (grid.match(/[GP]/g) || []).length;
 
